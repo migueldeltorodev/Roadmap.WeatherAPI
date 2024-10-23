@@ -2,6 +2,7 @@
 using Roadmap.WeatherAPI.Configuration;
 using Roadmap.WeatherAPI.Models;
 using System.Text.Json;
+using DotNetEnv;
 
 namespace Roadmap.WeatherAPI.Services
 {
@@ -15,6 +16,7 @@ namespace Roadmap.WeatherAPI.Services
         public WeatherService(HttpClient httpClient, IOptions<WeatherApiSettings> settings,
         ICacheService cacheService, ILogger<WeatherService> logger)
         {
+            Env.Load();
             _httpClient = httpClient;
             _settings = settings.Value;
             _cacheService = cacheService;
@@ -40,8 +42,8 @@ namespace Roadmap.WeatherAPI.Services
             {
                 PropertyNameCaseInsensitive = true,
             };
-
-            var url = $"{_settings.BaseUrl}?location={cityCode}&key={_settings.ApiKey}";
+            var apiKey = Environment.GetEnvironmentVariable("API_KEY");
+            var url = $"{_settings.BaseUrl}?location={cityCode}&key={apiKey}";
             var response = await _httpClient.GetAsync(url, cancellationToken);
             response.EnsureSuccessStatusCode();
 

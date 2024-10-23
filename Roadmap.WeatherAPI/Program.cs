@@ -53,7 +53,6 @@ public class Program
             try
             {
                 var weatherResponse = await weatherService.GetWeatherAsync(cityCode, CancellationToken.None);
-                Console.WriteLine($"Temperatura en {cityCode}: {weatherResponse.Days[0].Temp}°C");
                 return Results.Ok(weatherResponse);
             }
             catch (Exception ex)
