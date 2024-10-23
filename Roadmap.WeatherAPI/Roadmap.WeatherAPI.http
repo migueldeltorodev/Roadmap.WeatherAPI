@@ -1,0 +1,5 @@
+﻿@Roadmap.WeatherAPI_HostAddress = http://localhost:5194
+
+GET {{Roadmap.WeatherAPI_HostAddress}}/weather/havana
+
+###

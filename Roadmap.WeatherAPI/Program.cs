@@ -8,10 +8,6 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        //add services
-        builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen();
-
         //configure services from appsettings.json
         builder.Services.Configure<WeatherApiSettings>(
             builder.Configuration.GetSection("WeatherApi"));
@@ -38,12 +34,6 @@ public class Program
         builder.Services.AddHttpClient<IWeatherService, WeatherService>();
 
         var app = builder.Build();
-
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseSwagger();
-            app.UseSwaggerUI();
-        }
 
         app.UseHttpsRedirection();
         app.UseRateLimiter();
