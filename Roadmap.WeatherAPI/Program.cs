@@ -12,7 +12,7 @@ public class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 
-        //configure services
+        //configure services from appsettings.json
         builder.Services.Configure<WeatherApiSettings>(
             builder.Configuration.GetSection("WeatherApi"));
         builder.Services.Configure<RedisSettings>(
@@ -21,7 +21,7 @@ public class Program
         //Register Redis cache service as singleton
         builder.Services.AddSingleton<ICacheService, RedisCacheService>();
 
-        //configure Rate Limiting
+        //configure Rate Limiting middleware
         builder.Services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -35,7 +35,7 @@ public class Program
         });
 
         //Register Weather service
-        builder.Services.AddSingleton<IWeatherService, WeatherService>();
+        builder.Services.AddHttpClient<IWeatherService, WeatherService>();
 
         var app = builder.Build();
 
@@ -48,8 +48,20 @@ public class Program
         app.UseHttpsRedirection();
         app.UseRateLimiter();
 
-        // Map endpoints
-        app.MapWeatherEndpoints();
+        app.MapGet("/weather/{cityCode}", async (string cityCode, IWeatherService weatherService) =>
+        {
+            try
+            {
+                var weatherResponse = await weatherService.GetWeatherAsync(cityCode, CancellationToken.None);
+                Console.WriteLine($"Temperatura en {cityCode}: {weatherResponse.Days[0].Temp}°C");
+                return Results.Ok(weatherResponse);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al obtener el clima: {ex.Message}");
+                return Results.BadRequest(ex.Message);
+            }
+        });
 
         app.Run();
     }

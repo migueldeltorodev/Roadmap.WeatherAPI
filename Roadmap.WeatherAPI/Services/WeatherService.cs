@@ -23,7 +23,6 @@ namespace Roadmap.WeatherAPI.Services
 
         public async Task<WeatherResponse> GetWeatherAsync(string cityCode, CancellationToken cancellationToken)
         {
-            //redis key to store the cityCode value
             var cacheKey = $"weather:{cityCode}";
 
             // Try to get from cache first
@@ -37,26 +36,37 @@ namespace Roadmap.WeatherAPI.Services
             _logger.LogInformation("Cache miss for city code: {CityCode}", cityCode);
 
             // If not in cache, call the API
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+            };
+
             var url = $"{_settings.BaseUrl}?location={cityCode}&key={_settings.ApiKey}";
             var response = await _httpClient.GetAsync(url, cancellationToken);
-
             response.EnsureSuccessStatusCode();
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogInformation("Response content: {Content}", content);
             // Parse the Visual Crossing API response here
-            var weatherData = JsonSerializer.Deserialize<JsonDocument>(content);
-            var weatherResponse = new WeatherResponse(
-                CityCode: cityCode,
-                Temperature: weatherData.RootElement.GetProperty("current").GetProperty("temperature").GetDouble(),
-                Humidity: weatherData.RootElement.GetProperty("current").GetProperty("humidity").GetDouble(),
-                Description: weatherData.RootElement.GetProperty("current").GetProperty("conditions").GetString()!,
-                Timestamp: DateTime.UtcNow
-            );
+            try
+            {
+                var weatherData = JsonSerializer.Deserialize<WeatherResponse>(content, options);
 
-            // Cache the response
-            await _cacheService.SetAsync(cacheKey, weatherResponse);
+                if (weatherData == null)
+                {
+                    _logger.LogError("Failed to deserialize weather response.");
+                    throw new Exception("Error obtaining weather data.");
+                }
 
-            return weatherResponse;
+                await _cacheService.SetAsync(cacheKey, weatherData);
+                return weatherData;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError("Error deserializando la respuesta: {ErrorMessage}", ex.Message);
+                // Lanzar una excepción para que el llamador maneje el error
+                throw new Exception("Error deserializando la respuesta del clima.", ex);
+            }
         }
     }
 }
